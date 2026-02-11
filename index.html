@@ -591,6 +591,14 @@
         transform: translateY(0);
       }
 
+      /* Hover emphasis belongs to the country info panel, not the floating tooltip. */
+      #country-panel:hover {
+        border-color: rgba(236, 178, 0, 0.9);
+        box-shadow:
+          0 0 56px -16px rgba(236, 178, 0, 0.9),
+          0 25px 50px -12px rgba(0, 0, 0, 0.42);
+      }
+
       #country-panel::-webkit-scrollbar,
       #globe-ui .ui-results::-webkit-scrollbar {
         width: 8px;

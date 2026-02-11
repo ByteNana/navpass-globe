@@ -1298,22 +1298,12 @@ function onPointerHover(e: PointerEvent) {
   const meta = getFeatureMeta(feature)
   if (iso2) {
     const html = `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:200px;">
-        <div style="display:flex;flex-direction:column;gap:6px;min-width:0;">
-          <div style="font-family:'Optima','Times New Roman',serif;font-size:28px;line-height:1;letter-spacing:-0.35px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;">
-            ${escapeHtml(name)}
-          </div>
-          <div style="display:flex;align-items:center;gap:7px;">
-            <span style="width:8px;height:8px;border-radius:999px;background:#ecb200;display:inline-block;"></span>
-            <span style="font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:rgba(255,255,255,.52);">Live Monitoring</span>
-          </div>
-          <div style="font-size:11px;opacity:.68;letter-spacing:.55px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;">
-            ${escapeHtml(meta)}
-          </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <div style="font-size:12px;line-height:1.1;">${escapeHtml(name)}</div>
+          <div style="font-size:10px;opacity:.7;letter-spacing:.6px;text-transform:uppercase;">${escapeHtml(meta)}</div>
         </div>
-        <span style="width:52px;height:52px;border-radius:999px;overflow:hidden;display:grid;place-items:center;flex:0 0 52px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);">
-          <img src="${flagUrl}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentElement.style.display='none'">
-        </span>
+        <img src="${flagUrl}" alt="" style="height:28px;width:auto;border-radius:2px;display:block;" onerror="this.style.display='none'">
       </div>
     `
     tooltip.showHTML(html, e.clientX, e.clientY)
