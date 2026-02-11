@@ -357,12 +357,18 @@ const storyButtons = Array.from(
 )
 const heroTitleEl = document.getElementById('hero-title') as HTMLHeadingElement | null
 const heroSubtitleEl = document.getElementById('hero-subtitle') as HTMLParagraphElement | null
+const heroCopyEl = document.getElementById('hero-copy') as HTMLDivElement | null
 const storyPanel = document.querySelector('#globe-ui .ui-story') as HTMLDivElement | null
 const railZoomIn = document.getElementById('rail-zoom-in') as HTMLButtonElement | null
 const railZoomOut = document.getElementById('rail-zoom-out') as HTMLButtonElement | null
 const railInfo = document.getElementById('rail-info') as HTMLButtonElement | null
 const defaultHeroTitleHTML = heroTitleEl?.innerHTML ?? ''
 const defaultHeroSubtitle = heroSubtitleEl?.textContent ?? ''
+const SHOW_HERO_HEADLINE = false
+
+if (!SHOW_HERO_HEADLINE && heroCopyEl) {
+  heroCopyEl.style.display = 'none'
+}
 
 function setDefaultHeroCopy() {
   document.body.classList.remove('country-selected')
@@ -504,6 +510,7 @@ function zoomTo(distance: number, durationMs = 900) {
 
 controls.addEventListener('start', () => {
   // If the user zooms manually, stop scripted zoom so it doesn't "fight" them.
+  markUserInteracted()
   zoomAnim = null
 })
 
@@ -568,12 +575,19 @@ let lastMoveTime = performance.now()
 const INERTIA = 0.88          // atrito (0.85..0.95) — menor = mais “pesado”
 const MAX_VEL = 1.2           // rad/s (limita velocidade pra não “pirar”)
 const CLICK_DRAG_THRESHOLD = 4 // px: acima disso consideramos que foi drag
+const AUTO_ROTATE_SPEED = THREE.MathUtils.degToRad(0.78)
 let dragDistance = 0
 let dragSuppressUntil = 0
 let activePointerId: number | null = null
 let dragStartTime = 0
 let focusDimBase = 0
 let focusDimFlash = 0
+let hasUserInteracted = false
+let hoveredCountryRouteFocusIso3: string | null = null
+
+function markUserInteracted() {
+  hasUserInteracted = true
+}
 
 function resetDragState() {
   isDragging = false
@@ -595,6 +609,7 @@ function isEventOverUI(target: EventTarget | null) {
 function onPointerDown(e: PointerEvent) {
   if (e.button !== 0) return
   if (activePointerId !== null) return
+  markUserInteracted()
   isDragging = true
   dragDistance = 0
   lastX = e.clientX
@@ -678,6 +693,7 @@ function onPointerUp(e: PointerEvent) {
 
   const flightHit = getFlightHit(e.clientX, e.clientY, 0.2)
   if (flightHit) {
+    clearHoverRouteCouplingCountry()
     // Toggle selection on the same route.
     if (selectedFlightRouteId === flightHit.routeId) {
       selectedFlightRouteId = null
@@ -866,6 +882,7 @@ function setStoryUIActive(presetId: StoryPresetId) {
 
 function clearSelectionUIState() {
   // Clear country selection / route selection, but keep the scene intact.
+  clearHoverRouteCouplingCountry()
   setDefaultHeroCopy()
   tooltip.hide()
   lastHoverKey = ''
@@ -888,6 +905,7 @@ function clearSelectionUIState() {
 }
 
 function setStoryPreset(presetId: StoryPresetId) {
+  markUserInteracted()
   setStoryUIActive(presetId)
 
   // Story mode is a "global navigation" feature: selecting a preset exits any
@@ -985,6 +1003,24 @@ function getISO3(props: any) {
   return ''
 }
 
+function setHoverRouteCouplingCountry(iso3: string | null) {
+  if (!flightRoutes) return
+  if (isCountrySelected || selectedFlightRouteId !== null) return
+  const normalized = iso3 && iso3 !== '-99' ? iso3 : null
+  if (hoveredCountryRouteFocusIso3 === normalized) return
+  hoveredCountryRouteFocusIso3 = normalized
+  flightRoutes.setFocusCountry(normalized)
+}
+
+function clearHoverRouteCouplingCountry() {
+  if (!flightRoutes) return
+  if (hoveredCountryRouteFocusIso3 === null) return
+  hoveredCountryRouteFocusIso3 = null
+  if (!isCountrySelected && selectedFlightRouteId === null) {
+    flightRoutes.setFocusCountry(null)
+  }
+}
+
 function isoToFlagUrl(iso2: string) {
   if (!iso2) return ''
   return `/flags/${iso2.toLowerCase()}.svg`
@@ -1077,6 +1113,7 @@ function getFeatureFocusPoint(feature: any) {
 
 function selectCountryFeature(feature: any, worldPoint?: THREE.Vector3) {
   if (!feature) return
+  clearHoverRouteCouplingCountry()
   setCountryHeroCopy(getFeatureLabel(feature))
   if (resultsList) {
     resultsList.style.display = 'none'
@@ -1138,6 +1175,7 @@ function pickCountryAt(clientX: number, clientY: number) {
 
   // oceano
   if (!feature) {
+    clearHoverRouteCouplingCountry()
     setDefaultHeroCopy()
     globeAnim = null
     velYaw = 0
@@ -1167,6 +1205,7 @@ function onPointerHover(e: PointerEvent) {
   // Don't hover through UI.
   const elUnderPointer = document.elementFromPoint(e.clientX, e.clientY)
   if (isEventOverUI(elUnderPointer)) {
+    clearHoverRouteCouplingCountry()
     flightRoutes?.setHoverRoute(null)
     clearHoverHighlight(globeGroup)
     tooltip.hide()
@@ -1177,6 +1216,7 @@ function onPointerHover(e: PointerEvent) {
 
   // durante drag, não faz hover (fica muito mais "Google")
   if (isDragging) {
+    clearHoverRouteCouplingCountry()
     flightRoutes?.setHoverRoute(null)
     clearHoverHighlight(globeGroup)
     tooltip.hide()
@@ -1187,6 +1227,7 @@ function onPointerHover(e: PointerEvent) {
 
   // After a drag, give a tiny cooldown before showing hover again.
   if (performance.now() < dragSuppressUntil) {
+    clearHoverRouteCouplingCountry()
     flightRoutes?.setHoverRoute(null)
     clearHoverHighlight(globeGroup)
     tooltip.hide()
@@ -1198,6 +1239,9 @@ function onPointerHover(e: PointerEvent) {
   // Flight hover (prioritário): rota/avião por cima do país.
   const flightHit = getFlightHit(e.clientX, e.clientY, 0.16)
   if (flightHit) {
+    clearHoverRouteCouplingCountry()
+    clearHoverHighlight(globeGroup)
+    lastHoverKey = ''
     flightRoutes?.setHoverRoute(flightHit.routeId)
     renderer.domElement.style.cursor = 'pointer'
     showFlightTooltip(flightHit.routeId, e.clientX, e.clientY)
@@ -1212,6 +1256,7 @@ function onPointerHover(e: PointerEvent) {
 
   const hit = raycaster.intersectObject(pickSphere, false)[0]
   if (!hit) {
+    clearHoverRouteCouplingCountry()
     clearHoverHighlight(globeGroup)
     tooltip.hide()
     lastHoverKey = ''
@@ -1224,6 +1269,7 @@ function onPointerHover(e: PointerEvent) {
   const feature = findCountryFeature(countriesGeoJSON, lat, lon)
 
   if (!feature) {
+    clearHoverRouteCouplingCountry()
     clearHoverHighlight(globeGroup)
     tooltip.hide()
     lastHoverKey = ''
@@ -1237,6 +1283,7 @@ function onPointerHover(e: PointerEvent) {
     lastHoverKey = key
     setHoverHighlight(feature, globeGroup, GLOBE_RADIUS)
   }
+  setHoverRouteCouplingCountry(getISO3(feature.properties))
 
   const name =
     feature.properties?.ADMIN ||
@@ -1251,12 +1298,22 @@ function onPointerHover(e: PointerEvent) {
   const meta = getFeatureMeta(feature)
   if (iso2) {
     const html = `
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="display:flex;flex-direction:column;gap:2px;">
-          <div style="font-size:12px;line-height:1.1;">${escapeHtml(name)}</div>
-          <div style="font-size:10px;opacity:.7;letter-spacing:.6px;text-transform:uppercase;">${escapeHtml(meta)}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:200px;">
+        <div style="display:flex;flex-direction:column;gap:6px;min-width:0;">
+          <div style="font-family:'Optima','Times New Roman',serif;font-size:28px;line-height:1;letter-spacing:-0.35px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;">
+            ${escapeHtml(name)}
+          </div>
+          <div style="display:flex;align-items:center;gap:7px;">
+            <span style="width:8px;height:8px;border-radius:999px;background:#ecb200;display:inline-block;"></span>
+            <span style="font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:rgba(255,255,255,.52);">Live Monitoring</span>
+          </div>
+          <div style="font-size:11px;opacity:.68;letter-spacing:.55px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;">
+            ${escapeHtml(meta)}
+          </div>
         </div>
-        <img src="${flagUrl}" alt="" style="height:28px;width:auto;border-radius:2px;display:block;" onerror="this.style.display='none'">
+        <span style="width:52px;height:52px;border-radius:999px;overflow:hidden;display:grid;place-items:center;flex:0 0 52px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);">
+          <img src="${flagUrl}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentElement.style.display='none'">
+        </span>
       </div>
     `
     tooltip.showHTML(html, e.clientX, e.clientY)
@@ -1501,24 +1558,32 @@ function animate() {
   }
 
   if (!isDragging && !globeAnim) {
-    // aplica inércia via quaternions (sem Euler)
-    if (Math.abs(velYaw) > 0.00001) {
-      yawAccum += velYaw * deltaSeconds
+    const hasMomentum = Math.abs(velYaw) > 0.00001 || Math.abs(velPitch) > 0.00001
+
+    if (hasMomentum) {
+      // aplica inércia via quaternions (sem Euler)
+      if (Math.abs(velYaw) > 0.00001) {
+        yawAccum += velYaw * deltaSeconds
+      }
+
+      if (Math.abs(velPitch) > 0.00001) {
+        pitchAccum = THREE.MathUtils.clamp(pitchAccum + velPitch * deltaSeconds, -maxPitch, maxPitch)
+      }
+
+      applyYawPitchToGlobe()
+
+      const damping = Math.pow(INERTIA, deltaSeconds * 60)
+      velYaw *= damping
+      velPitch *= damping
+
+      // “corta” quando ficar imperceptível (evita drift infinito)
+      if (Math.abs(velYaw) < 0.00001) velYaw = 0
+      if (Math.abs(velPitch) < 0.00001) velPitch = 0
+    } else if (!hasUserInteracted && !isCountrySelected && selectedFlightRouteId === null) {
+      // Slow idle rotation until first interaction.
+      yawAccum += AUTO_ROTATE_SPEED * deltaSeconds
+      applyYawPitchToGlobe()
     }
-
-    if (Math.abs(velPitch) > 0.00001) {
-      pitchAccum = THREE.MathUtils.clamp(pitchAccum + velPitch * deltaSeconds, -maxPitch, maxPitch)
-    }
-
-    applyYawPitchToGlobe()
-
-    const damping = Math.pow(INERTIA, deltaSeconds * 60)
-    velYaw *= damping
-    velPitch *= damping
-
-    // “corta” quando ficar imperceptível (evita drift infinito)
-    if (Math.abs(velYaw) < 0.00001) velYaw = 0
-    if (Math.abs(velPitch) < 0.00001) velPitch = 0
   }
 
   // Sun direction (Earth-fixed): update a few times per second, then rotate with the globe
@@ -1651,6 +1716,7 @@ async function init() {
 
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      clearHoverRouteCouplingCountry()
       setDefaultHeroCopy()
       resetGlobeRotation()
       selectedFlightRouteId = null
