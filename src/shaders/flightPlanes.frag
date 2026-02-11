@@ -48,7 +48,7 @@ void main() {
 
   // Subtle zoom fade so we don't spam the screen when zoomed out.
   float zoom = clamp((32.0 - uCameraDistance) / 16.0, 0.0, 1.0);
-  float zoomFade = 0.55 + 0.45 * zoom;
+  float zoomFade = 0.72 + 0.28 * zoom;
   float zoomOut = 1.0 - zoom;
 
   float shimmer = 0.86 + 0.14 * sin(uTime * 4.2 + vSeed * 6.2831);
@@ -94,7 +94,7 @@ void main() {
 
   float bundleMix = smoothstep(0.35, 0.95, zoomOut);
   float hubKeep = smoothstep(0.18, 0.88, vHub);
-  float bundleContext = mix(1.0, mix(0.18, 1.0, hubKeep), bundleMix);
+  float bundleContext = mix(1.0, mix(0.36, 1.0, hubKeep), bundleMix);
   bundleContext = mix(bundleContext, 1.0, emphasize);
   alpha *= bundleContext;
 

@@ -27,10 +27,11 @@ export function createLanguagePoints(data: any[], radius: number) {
 
     positions.push(v.x, v.y, v.z);
 
-    color.copy(GOOGLE_COLORS.yellow);
+    color.copy(GOOGLE_COLORS.white);
     colors.push(color.r, color.g, color.b);
 
-    sizes.push(Math.random() * 0.8 + 1.1);
+    // Smaller airport dots (closer to Google's subtle star-like points).
+    sizes.push(Math.random() * 0.42 + 0.48);
     seeds.push(Math.random());
   }
 
@@ -63,7 +64,7 @@ export function createLanguagePoints(data: any[], radius: number) {
       uTime: { value: 0 },
       uCameraDistance: { value: 0 },
       uColorMul: { value: new THREE.Color(1, 1, 1) },
-      uAlphaMul: { value: 1 }
+      uAlphaMul: { value: 0.82 }
     }
   });
 

@@ -20,7 +20,7 @@ void main() {
   // glow suave
   float alpha = smoothstep(0.5, 0.1, d);
 
-  float shimmer = 0.8 + 0.2 * sin(uTime * 2.2 + vSeed * 6.2831);
+  float shimmer = 0.9 + 0.1 * sin(uTime * 2.2 + vSeed * 6.2831);
   float zoom = clamp((32.0 - uCameraDistance) / 16.0, 0.0, 1.0);
   float zoomFade = 0.35 + 0.65 * zoom;
 

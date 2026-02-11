@@ -43,11 +43,11 @@ function makeLayer(
   // inner aura
   const geoA = buildGridGeometry(radius * 1.038, latStep, lonStep)
   // Limb-only: keep it close to the silhouette so it feels like a mesh "shell", not a flat grid.
-  const matA = createLineFadeMaterial(GOOGLE_COLORS.lightBlue, opacityInner, 0.60, 0.99, 1.75, 'limb')
+  const matA = createLineFadeMaterial(GOOGLE_COLORS.lightBlue, opacityInner, 0.48, 0.96, 1.55, 'limb')
   matA.blending = THREE.AdditiveBlending
   {
     const u: any = matA.uniforms
-    u.uShimmerStrength.value = 0.12
+    u.uShimmerStrength.value = 0.16
     u.uShimmerSpeed.value = 0.92
     u.uShimmerPulse.value = 0.24
     u.uShimmerScale.value = 0.85
@@ -66,11 +66,11 @@ function makeLayer(
 
   // outer aura
   const geoB = buildGridGeometry(radius * 1.052, latStep, lonStep)
-  const matB = createLineFadeMaterial(GOOGLE_COLORS.lightBlue, opacityOuter, 0.60, 0.99, 1.75, 'limb')
+  const matB = createLineFadeMaterial(GOOGLE_COLORS.lightBlue, opacityOuter, 0.48, 0.96, 1.55, 'limb')
   matB.blending = THREE.AdditiveBlending
   {
     const u: any = matB.uniforms
-    u.uShimmerStrength.value = 0.12
+    u.uShimmerStrength.value = 0.16
     u.uShimmerSpeed.value = 0.92
     u.uShimmerPulse.value = 0.24
     u.uShimmerScale.value = 0.85
@@ -95,9 +95,9 @@ function makeLayer(
 
 export function createAdaptiveLatLonGrid(radius: number, camera: THREE.Camera) {
   // coarse (10°)
-  const coarse = makeLayer(radius, 10, 10, 0.013, 0.022, camera)
+  const coarse = makeLayer(radius, 10, 10, 0.019, 0.032, camera)
   // fine (5°) — quadrados menores
-  const fine = makeLayer(radius, 5, 5, 0.009, 0.016, camera)
+  const fine = makeLayer(radius, 5, 5, 0.013, 0.024, camera)
 
   // começa com coarse visível e fine “apagado”
   let coarseAlpha = 1

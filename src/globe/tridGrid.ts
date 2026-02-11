@@ -10,11 +10,11 @@ function makeTriWire(radius: number, detail: number, opacity: number, camera: TH
   const edges = new THREE.EdgesGeometry(ico, 1) // thresholdAngle baixo pega todas
 
   // Limb-only fade: grid should show mostly near the globe's silhouette (Google Research feel).
-  const mat = createLineFadeMaterial(GOOGLE_COLORS.lightBlue, opacity, 0.6, 0.995, 2.15, 'limb')
+  const mat = createLineFadeMaterial(GOOGLE_COLORS.lightBlue, opacity, 0.46, 0.965, 1.75, 'limb')
   mat.blending = THREE.AdditiveBlending
   {
     const u: any = mat.uniforms
-    u.uShimmerStrength.value = 0.12
+    u.uShimmerStrength.value = 0.16
     u.uShimmerSpeed.value = 0.92
     u.uShimmerPulse.value = 0.23
     u.uShimmerScale.value = 0.88
@@ -37,8 +37,8 @@ function makeTriWire(radius: number, detail: number, opacity: number, camera: TH
 
 export function createAdaptiveTriGrid(radius: number, camera: THREE.Camera) {
   // Denser mesh: smaller triangles reduce visible "tips"/junction hotspots.
-  const coarse = makeTriWire(radius * 1.048, 3, 0.052, camera) // detail 3
-  const fine = makeTriWire(radius * 1.056, 4, 0.038, camera)   // detail 4
+  const coarse = makeTriWire(radius * 1.048, 4, 0.043, camera) // detail 4
+  const fine = makeTriWire(radius * 1.056, 5, 0.03, camera)   // detail 5
 
   let coarseAlpha = 1
   let fineAlpha = 0

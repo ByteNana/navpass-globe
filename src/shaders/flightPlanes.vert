@@ -92,10 +92,10 @@ void main() {
   vFacing = dot(normalize(worldPos), normalize(cameraPosition));
 
   float baseSize = aSize * aTraffic;
-  float pointSize = baseSize * (240.0 / dist);
+  float pointSize = baseSize * (292.0 / dist);
   pointSize *= (1.0 + emphasize * 0.55);
   pointSize *= aEnable * keepMask * densMask;
 
-  gl_PointSize = clamp(pointSize, 0.0, 32.0);
+  gl_PointSize = clamp(pointSize, 0.0, 40.0);
   gl_Position = projectionMatrix * mvPosition;
 }

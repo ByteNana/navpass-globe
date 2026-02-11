@@ -740,7 +740,7 @@ export function createFlightRoutes(
   // Planes (batch in 1 draw call)
   // ---------------------------
   const planeGeo = new THREE.BufferGeometry()
-  const MAX_PLANES_PER_ROUTE = 4
+  const MAX_PLANES_PER_ROUTE = 5
   const planeCount = routeData.length * MAX_PLANES_PER_ROUTE
 
   // Dummy position for Points geometry.
@@ -843,7 +843,7 @@ export function createFlightRoutes(
       uCoreColor: { value: GOOGLE_COLORS.white.clone() },
       uGlowColor: { value: GOOGLE_COLORS.yellow.clone().lerp(GOOGLE_COLORS.white, 0.35) },
       uTintColor: { value: GOOGLE_COLORS.lightBlue.clone().multiplyScalar(0.9) },
-      uAlpha: { value: 0.92 },
+      uAlpha: { value: 1.0 },
       uFocusMix: { value: 0.0 },
       uRouteKeep: { value: 1.0 },
       uPlaneDensity: { value: 1.0 },
@@ -1201,8 +1201,8 @@ export function createFlightRoutes(
 
     // LOD: keep it subtle at distance; richer near the globe.
     const zoom = THREE.MathUtils.clamp((32 - cameraDistance) / 16, 0, 1)
-    const routeKeep = THREE.MathUtils.lerp(0.22, 1.0, zoom)
-    const planeDensity = THREE.MathUtils.lerp(0.28, 1.0, zoom)
+    const routeKeep = THREE.MathUtils.lerp(0.30, 1.0, zoom)
+    const planeDensity = THREE.MathUtils.lerp(0.48, 1.0, zoom)
     lineMat.uniforms.uRouteKeep.value = routeKeep
     planeMat.uniforms.uRouteKeep.value = routeKeep
     planeMat.uniforms.uPlaneDensity.value = planeDensity
@@ -1225,7 +1225,7 @@ export function createFlightRoutes(
     lineMat.uniforms.uGlowAlpha.value = THREE.MathUtils.lerp(0.18, 0.34, zoom)
     lineMat.uniforms.uBaseAlpha.value = THREE.MathUtils.lerp(0.028, 0.05, zoom)
     lineMat.uniforms.uHeadWidth.value = THREE.MathUtils.lerp(0.018, 0.024, zoom)
-    planeMat.uniforms.uAlpha.value = THREE.MathUtils.lerp(0.68, 0.92, zoom)
+    planeMat.uniforms.uAlpha.value = THREE.MathUtils.lerp(0.82, 1.0, zoom)
   }
 
   return {

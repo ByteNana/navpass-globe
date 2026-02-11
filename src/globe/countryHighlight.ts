@@ -2,20 +2,21 @@ import * as THREE from 'three'
 import { latLongToVector3 } from './latLongtoVector3'
 
 let current: THREE.Object3D | null = null
-let currentMat: THREE.ShaderMaterial | null = null
+let currentMats: THREE.ShaderMaterial[] = []
 let pulsePhase = Math.random() * Math.PI * 2
 
 const VERT = /* glsl */ `
 attribute float aT;
 attribute float aSeed;
 uniform float uPulse;
+uniform float uThickness;
 varying float vT;
 varying float vSeed;
 
 void main() {
   vT = aT;
   vSeed = aSeed;
-  vec3 p = position * (1.0 + uPulse);
+  vec3 p = position * (1.0 + uPulse + uThickness);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
 }
 `
@@ -48,21 +49,7 @@ void main() {
 }
 `
 
-export function highlightCountryFromFeature(
-  feature: any,
-  parent: THREE.Object3D,
-  radius: number
-) {
-  if (current) {
-    parent.remove(current)
-    current = null
-  }
-
-  const group = new THREE.Group()
-
-  const geom = feature.geometry
-  const polys = geom.type === 'MultiPolygon' ? geom.coordinates : [geom.coordinates]
-
+function createHighlightMaterial(opacity: number, thickness: number) {
   const mat = new THREE.ShaderMaterial({
     vertexShader: VERT,
     fragmentShader: FRAG,
@@ -71,11 +58,33 @@ export function highlightCountryFromFeature(
     blending: THREE.AdditiveBlending,
     uniforms: {
       uTime: { value: 0 },
-      uOpacity: { value: 0.9 },
-      uPulse: { value: 0 }
+      uOpacity: { value: opacity },
+      uPulse: { value: 0 },
+      uThickness: { value: thickness }
     }
   })
-  currentMat = mat
+  mat.userData.baseOpacity = opacity
+  mat.userData.baseThickness = thickness
+  return mat
+}
+
+export function highlightCountryFromFeature(
+  feature: any,
+  parent: THREE.Object3D,
+  radius: number
+) {
+  if (current) {
+    clearHighlight(parent)
+  }
+
+  const group = new THREE.Group()
+  const geom = feature.geometry
+  const polys = geom.type === 'MultiPolygon' ? geom.coordinates : [geom.coordinates]
+
+  // Two-pass render to fake thicker country outline in WebGL line rendering.
+  const glowMat = createHighlightMaterial(0.52, 0.0048)
+  const coreMat = createHighlightMaterial(0.9, 0.0012)
+  currentMats = [glowMat, coreMat]
   pulsePhase = Math.random() * Math.PI * 2
 
   for (const poly of polys) {
@@ -83,28 +92,30 @@ export function highlightCountryFromFeature(
       const pts: THREE.Vector3[] = []
       const tValues: number[] = []
       const seedValues: number[] = []
+
       for (const [lng, lat] of ring) {
-        const v = latLongToVector3(lat, lng, radius * 1.008) // acima da superfície (saltar)
+        const v = latLongToVector3(lat, lng, radius * 1.008)
         pts.push(v)
       }
 
-      const lineGeom = new THREE.BufferGeometry().setFromPoints(pts)
       const ringSeed = Math.random()
       for (let i = 0; i < pts.length; i++) {
         tValues.push(i / Math.max(1, pts.length - 1))
         seedValues.push(ringSeed)
       }
-      lineGeom.setAttribute(
-        'aT',
-        new THREE.Float32BufferAttribute(tValues, 1)
-      )
-      lineGeom.setAttribute(
-        'aSeed',
-        new THREE.Float32BufferAttribute(seedValues, 1)
-      )
-      const line = new THREE.Line(lineGeom, mat)
-      line.renderOrder = 10
-      group.add(line)
+
+      const lineGeomGlow = new THREE.BufferGeometry().setFromPoints(pts)
+      lineGeomGlow.setAttribute('aT', new THREE.Float32BufferAttribute(tValues, 1))
+      lineGeomGlow.setAttribute('aSeed', new THREE.Float32BufferAttribute(seedValues, 1))
+
+      const lineGeomCore = lineGeomGlow.clone()
+      const glowLine = new THREE.Line(lineGeomGlow, glowMat)
+      const coreLine = new THREE.Line(lineGeomCore, coreMat)
+      glowLine.renderOrder = 10
+      coreLine.renderOrder = 11
+
+      group.add(glowLine)
+      group.add(coreLine)
     }
   }
 
@@ -120,16 +131,23 @@ export function clearHighlight(parent: THREE.Object3D) {
       obj.geometry.dispose()
     }
   })
-  currentMat?.dispose()
+  for (const mat of currentMats) {
+    mat.dispose()
+  }
+  currentMats = []
   current = null
-  currentMat = null
 }
 
 export function updateCountryHighlight(timeSeconds: number) {
-  if (!currentMat) return
+  if (!currentMats.length) return
   const pulse = 0.010 + 0.008 * Math.sin(timeSeconds * 1.8 + pulsePhase)
   const alpha = 0.78 + 0.22 * Math.sin(timeSeconds * 1.6 + pulsePhase)
-  currentMat.uniforms.uTime.value = timeSeconds
-  currentMat.uniforms.uPulse.value = pulse
-  currentMat.uniforms.uOpacity.value = alpha
+
+  for (const mat of currentMats) {
+    const baseOpacity = Number(mat.userData.baseOpacity ?? 0.8)
+    const thickness = Number(mat.userData.baseThickness ?? 0)
+    mat.uniforms.uTime.value = timeSeconds
+    mat.uniforms.uPulse.value = pulse * (thickness > 0.003 ? 0.72 : 1.0)
+    mat.uniforms.uOpacity.value = alpha * baseOpacity
+  }
 }
